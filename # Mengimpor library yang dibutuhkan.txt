@@ -1,0 +1,175 @@
+# Mengimpor library yang dibutuhkan
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Mengatur tampilan grafik lebih besar di matplotlib
+plt.rcParams['figure.figsize'] = (10, 6)
+
+
+
+
+# Memuat dataset dari file CSV (ganti 'ecommerce_customers.csv' dengan nama file CSV Anda)
+df = pd.read_csv('ecommerce_customers.csv')
+
+# Menampilkan 5 data teratas untuk melihat struktur dataset
+print("Contoh data teratas:")
+print(df.head())
+
+# Menampilkan informasi umum dataset
+print("\nInformasi dataset:")
+print(df.info())
+
+# Menampilkan statistik deskriptif dari data
+print("\nStatistik deskriptif dataset:")
+print(df.describe())
+
+
+
+
+# Menghapus data yang memiliki nilai kosong (jika ada)
+df = df.dropna()
+
+# Melakukan encoding pada variabel kategorikal (misal: Gender menjadi 0 dan 1)
+# Anda bisa menyesuaikan encoding ini jika dataset memiliki variabel kategorikal lain
+df['Gender'] = df['Gender'].apply(lambda x: 1 if x == 'Male' else 0)
+
+# Memisahkan fitur (X) dan label (y)
+X = df[['Age', 'Gender', 'Annual Income (k$)', 'Spending Score (1-100)']]  # Pilih fitur yang relevan
+y = df['Purchase']  # Misalnya, 'Purchase' adalah kolom target biner (0 = Tidak Membeli, 1 = Membeli)
+
+# Menampilkan beberapa sampel data setelah preprocessing
+print("\nData setelah preprocessing:")
+print(X.head())
+print("\nLabel target:")
+print(y.head())
+
+
+
+
+# Membagi dataset menjadi data latih dan data uji (80% latih, 20% uji)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Menampilkan informasi jumlah sampel data latih dan uji
+print("Jumlah sampel data latih:", X_train.shape[0])
+print("Jumlah sampel data uji:", X_test.shape[0])
+
+
+
+
+# Standardisasi fitur menggunakan StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Menampilkan beberapa sampel data latih setelah standardisasi
+print("\nData latih setelah standardisasi:")
+print(X_train[:5])
+
+
+
+
+# Melatih model Logistic Regression
+logreg_model = LogisticRegression()
+logreg_model.fit(X_train, y_train)
+
+# Melakukan prediksi menggunakan Logistic Regression
+y_pred_logreg = logreg_model.predict(X_test)
+
+# Menghitung akurasi
+accuracy_logreg = accuracy_score(y_test, y_pred_logreg)
+print("Logistic Regression Accuracy: {:.2f}%".format(accuracy_logreg * 100))
+
+
+
+
+# Melatih model SVM dengan kernel linear
+svm_model = SVC(kernel='linear', probability=True)
+svm_model.fit(X_train, y_train)
+
+# Melakukan prediksi menggunakan SVM
+y_pred_svm = svm_model.predict(X_test)
+
+# Menghitung akurasi
+accuracy_svm = accuracy_score(y_test, y_pred_svm)
+print("SVM Accuracy: {:.2f}%".format(accuracy_svm * 100))
+
+
+
+
+# Confusion Matrix untuk Logistic Regression
+print("\nConfusion Matrix untuk Logistic Regression:")
+conf_matrix_logreg = confusion_matrix(y_test, y_pred_logreg)
+sns.heatmap(conf_matrix_logreg, annot=True, fmt='d', cmap='Blues')
+plt.title("Confusion Matrix - Logistic Regression")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+# Confusion Matrix untuk SVM
+print("\nConfusion Matrix untuk SVM:")
+conf_matrix_svm = confusion_matrix(y_test, y_pred_svm)
+sns.heatmap(conf_matrix_svm, annot=True, fmt='d', cmap='Reds')
+plt.title("Confusion Matrix - SVM")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+# Classification Report untuk Logistic Regression
+print("\nClassification Report untuk Logistic Regression:")
+print(classification_report(y_test, y_pred_logreg))
+
+# Classification Report untuk SVM
+print("\nClassification Report untuk SVM:")
+print(classification_report(y_test, y_pred_svm))
+
+
+
+
+# Menggunakan hanya dua fitur pertama untuk visualisasi decision boundary
+X_vis_train = X_train[:, :2]
+X_vis_test = X_test[:, :2]
+
+# Latih ulang model untuk visualisasi dengan dua fitur
+logreg_model_vis = LogisticRegression()
+svm_model_vis = SVC(kernel='linear')
+
+logreg_model_vis.fit(X_vis_train, y_train)
+svm_model_vis.fit(X_vis_train, y_train)
+
+# Fungsi untuk memplot decision boundary
+def plot_decision_boundary(model, X, y, title):
+    # Mengatur rentang grafik
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01),
+                         np.arange(y_min, y_max, 0.01))
+    
+    # Memperoleh prediksi untuk setiap titik pada meshgrid
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    
+    # Plot decision boundary
+    plt.figure(figsize=(8, 6))
+    plt.contourf(xx, yy, Z, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y, edgecolors='k', marker='o', s=100, cmap='viridis')
+    plt.title(title)
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.show()
+
+# Visualisasi decision boundary untuk Logistic Regression
+plot_decision_boundary(logreg_model_vis, X_vis_test, y_test, 'Logistic Regression Decision Boundary')
+
+# Visualisasi decision boundary untuk SVM
+plot_decision_boundary(svm_model_vis, X_vis_test, y_test, 'SVM Decision Boundary')
+
+
+
+
